@@ -1,0 +1,16 @@
+name = "no-toxic-tsekh"
+
+[env.production]
+compatibility_date = "2023-08-14"
+
+# Настройки для статических файлов
+[[env.production.rules]]
+type = "Data"
+globs = ["**/*.mp4", "**/*.webm"]
+
+[build]
+command = "npm run build"
+destination = "./dist"
+
+[build.environment_variables]
+NODE_VERSION = "18"

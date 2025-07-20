@@ -165,12 +165,31 @@ import '../styles/global.css';
           // eslint-disable-next-line no-console
           console.log('Загружаем видео через fetch...');
           
-          const response = await fetch(`/videos/${videoFile}`);
+          const response = await fetch(`/videos/${videoFile}`, {
+            headers: {
+              'Accept': 'video/mp4,video/*,*/*'
+            }
+          });
+          
+          // eslint-disable-next-line no-console
+          console.log('Fetch ответ:', response.status, response.statusText);
+          // eslint-disable-next-line no-console
+          console.log('Content-Type:', response.headers.get('content-type'));
+          
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
           
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('text/html')) {
+            throw new Error('Сервер вернул HTML вместо видео (проблема маршрутизации)');
+          }
+          
           const blob = await response.blob();
+          
+          // eslint-disable-next-line no-console
+          console.log('Blob создан:', blob.size, 'bytes, тип:', blob.type);
+          
           const videoUrl = URL.createObjectURL(blob);
           
           // eslint-disable-next-line no-console
@@ -188,8 +207,29 @@ import '../styles/global.css';
         } catch (error) {
           // eslint-disable-next-line no-console
           console.error('Ошибка альтернативной загрузки:', error);
-          showVideoPlaceholder();
+          
+          // Пробуем прямую ссылку с кэш-бастингом
+          tryDirectVideoLoad(videoFile);
         }
+      }
+
+      // Прямая загрузка с кэш-бастингом
+      function tryDirectVideoLoad(videoFile) {
+        // eslint-disable-next-line no-console
+        console.log('Пробуем прямую загрузку с кэш-бастингом...');
+        
+        const timestamp = Date.now();
+        video.src = `/videos/${videoFile}?v=${timestamp}`;
+        video.load();
+        
+        // Если и это не работает, показываем заглушку
+        setTimeout(() => {
+          if (video.networkState === video.NETWORK_NO_SOURCE) {
+            // eslint-disable-next-line no-console
+            console.error('Все методы загрузки видео не сработали');
+            showVideoPlaceholder();
+          }
+        }, 3000);
       }
 
       // Функция показа заглушки

@@ -1,0 +1,15 @@
+# Настройка MIME типов для видео файлов
+AddType video/mp4 .mp4
+AddType video/webm .webm
+
+# Кэширование видео файлов
+<FilesMatch "\.(mp4|webm)$">
+    ExpiresActive On
+    ExpiresDefault "access plus 1 year"
+    Header set Cache-Control "public, max-age=31536000"
+</FilesMatch>
+
+# CORS для видео файлов
+<FilesMatch "\.(mp4|webm)$">
+    Header set Access-Control-Allow-Origin "*"
+</FilesMatch>
