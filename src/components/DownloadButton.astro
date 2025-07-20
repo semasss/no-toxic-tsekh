@@ -39,7 +39,9 @@
     canvas.width = videoElement.videoWidth || 720;
     canvas.height = videoElement.videoHeight || 1280;
 
-    const userName = localStorage.getItem('userName') || 'Имя';
+    // Получаем имя из URL параметров
+    const urlParams = new URLSearchParams(window.location.search);
+    const userName = urlParams.get('name') || 'Имя';
     const overlayText = `«Д-в, ЦЕХ и ${userName} отменили токсик. Смоленск. 2025.»`;
 
     // Простая реализация без WebCodecs для совместимости

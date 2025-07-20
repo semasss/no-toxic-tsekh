@@ -24,7 +24,7 @@ import '../styles/global.css';
       loop
       class="w-full h-full object-cover"
     >
-      <source src="/videos/placeholder.mp4" type="video/mp4">
+      <source src="/videos/boy.mp4" type="video/mp4">
       Ваш браузер не поддерживает видео.
     </video>
 
@@ -45,9 +45,10 @@ import '../styles/global.css';
 
       if (!video || !overlayText) return;
 
-      // Получаем данные из localStorage
-      const gender = localStorage.getItem('gender');
-      const userName = localStorage.getItem('userName');
+      // Получаем данные из URL параметров
+      const urlParams = new URLSearchParams(window.location.search);
+      const gender = urlParams.get('gender');
+      const userName = urlParams.get('name');
 
       // Если нет данных, перенаправляем на главную
       if (!gender || !userName) {
@@ -74,6 +75,12 @@ import '../styles/global.css';
         video.style.alignItems = 'center';
         video.style.justifyContent = 'center';
         video.innerHTML = '<div class="text-white text-center p-4">Видео временно недоступно</div>';
+      });
+
+      // Обработка успешной загрузки видео
+      video.addEventListener('loadeddata', () => {
+        // eslint-disable-next-line no-console
+        console.log('Видео успешно загружено');
       });
     });
   </script>
