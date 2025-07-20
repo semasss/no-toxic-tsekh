@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор тестовых видео</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Генератор тестовых видео</h1>
+        <p>Эта страница создаст простые тестовые видео файлы для проекта.</p>
+        
+        <button onclick="generateVideo('boy')">Создать boy.mp4 (синий фон)</button>
+        <button onclick="generateVideo('girl')">Создать girl.mp4 (розовый фон)</button>
+        
+        <div id="status"></div>
+        
+        <div id="preview">
+            <h3>Предварительный просмотр:</h3>
+            <video id="preview-video" controls width="400" height="600"></video>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.innerHTML = `<div class="status ${isError ? 'error' : 'success'}">${message}</div>`;
+        }
+
+        function generateVideo(type) {
+            showStatus(`Создаем ${type}.mp4...`);
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Размеры видео
+            canvas.width = 720;
+            canvas.height = 1280;
+            
+            // Цвет фона в зависимости от типа
+            const bgColor = type === 'boy' ? '#3B82F6' : '#EC4899';
+            
+            // Создаем MediaRecorder
+            const stream = canvas.captureStream(30); // 30 FPS
+            const mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9'
+            });
+            
+            const chunks = [];
+            mediaRecorder.ondataavailable = event => chunks.push(event.data);
+            
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                
+                // Создаем ссылку для скачивания
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${type}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Показываем в превью
+                const previewVideo = document.getElementById('preview-video');
+                previewVideo.src = url;
+                
+                showStatus(`${type}.webm создан и скачан!`);
+            };
+            
+            // Анимация
+            let frame = 0;
+            const totalFrames = 90; // 3 секунды при 30 FPS
+            
+            function drawFrame() {
+                // Очищаем canvas
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Рисуем простую анимацию
+                const progress = frame / totalFrames;
+                const y = canvas.height * 0.5 + Math.sin(progress * Math.PI * 4) * 100;
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${type.toUpperCase()}`, canvas.width / 2, y);
+                
+                // Рисуем прогресс
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(50, canvas.height - 100, (canvas.width - 100) * progress, 20);
+                
+                frame++;
+                
+                if (frame < totalFrames) {
+                    requestAnimationFrame(drawFrame);
+                } else {
+                    mediaRecorder.stop();
+                }
+            }
+            
+            // Начинаем запись
+            mediaRecorder.start();
+            drawFrame();
+        }
+    </script>
+</body>
+</html> 

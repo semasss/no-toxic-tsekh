@@ -25,6 +25,10 @@ import '../styles/global.css';
       class="w-full h-full object-cover"
       preload="metadata"
     >
+      <source src="/videos/boy.webm" type="video/webm">
+      <source src="/videos/girl.webm" type="video/webm">
+      <source src="/videos/boy.mp4" type="video/mp4">
+      <source src="/videos/girl.mp4" type="video/mp4">
       Ваш браузер не поддерживает видео.
     </video>
 
@@ -58,14 +62,6 @@ import '../styles/global.css';
         return;
       }
 
-      // Устанавливаем источник видео в зависимости от пола
-      const videoSrc = gender === 'male' ? '/videos/boy.mp4' : '/videos/girl.mp4';
-      
-      // eslint-disable-next-line no-console
-      console.log('Загружаем видео:', videoSrc);
-      
-      video.src = videoSrc;
-
       // Обновляем текст оверлея с именем пользователя
       const text = `«Д-в, ЦЕХ и ${userName} отменили токсик. Смоленск. 2025.»`;
       overlayText.textContent = text;
@@ -95,12 +91,8 @@ import '../styles/global.css';
         console.error('Код ошибки:', video.error?.code);
         console.error('Сообщение ошибки:', video.error?.message);
         
-        // Используем заглушку если основное видео не загрузилось
-        video.style.backgroundColor = '#333';
-        video.style.display = 'flex';
-        video.style.alignItems = 'center';
-        video.style.justifyContent = 'center';
-        video.innerHTML = '<div class="text-white text-center p-4">Видео временно недоступно</div>';
+        // Показываем заглушку вместо видео
+        showVideoPlaceholder();
       });
 
       // Обработка начала загрузки
@@ -114,6 +106,46 @@ import '../styles/global.css';
         // eslint-disable-next-line no-console
         console.log('Прогресс загрузки видео');
       });
+
+      // Функция показа заглушки
+      function showVideoPlaceholder() {
+        const bgColor = gender === 'male' ? '#3B82F6' : '#EC4899'; // Синий для мужчин, розовый для женщин
+        
+        video.style.backgroundColor = bgColor;
+        video.style.display = 'flex';
+        video.style.alignItems = 'center';
+        video.style.justifyContent = 'center';
+        video.innerHTML = `
+          <div class="text-white text-center p-4">
+            <div class="text-4xl mb-4">${gender === 'male' ? '👨' : '👩'}</div>
+            <div class="text-lg mb-2">Видео временно недоступно</div>
+            <div class="text-sm opacity-75">Попробуйте обновить страницу</div>
+          </div>
+        `;
+        
+        // Активируем кнопку даже при ошибке видео
+        if (downloadBtn) {
+          downloadBtn.disabled = false;
+          downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      }
+
+      // Проверяем поддержку видео
+      if (!video.canPlayType('video/webm') && !video.canPlayType('video/mp4')) {
+        // eslint-disable-next-line no-console
+        console.warn('Браузер не поддерживает WebM или MP4 видео');
+        showVideoPlaceholder();
+      }
+
+      // Таймаут для активации кнопки если видео не загрузилось
+      setTimeout(() => {
+        if (downloadBtn && downloadBtn.disabled) {
+          // eslint-disable-next-line no-console
+          console.log('Активируем кнопку по таймауту');
+          downloadBtn.disabled = false;
+          downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      }, 5000); // 5 секунд
     });
   </script>
 </body>
