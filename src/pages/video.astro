@@ -69,9 +69,11 @@ import '../styles/global.css';
       // Выбираем видео на основе пола
       const videoSrc = gender === 'male' ? boyVideoSrc : girlVideoSrc;
       const videoFile = gender === 'male' ? 'boy.mp4' : 'girl.mp4';
+      video.src = `/videos/${videoFile}`;
       
       // eslint-disable-next-line no-console
       console.log(`Загружаем видео: ${videoFile} для пола: ${gender}`);
+<<<<<<< HEAD
       // eslint-disable-next-line no-console
       console.log(`URL видео: ${videoSrc}`);
       // eslint-disable-next-line no-console
@@ -98,6 +100,8 @@ import '../styles/global.css';
       
       // Принудительная загрузка
       video.load();
+=======
+>>>>>>> parent of ae3c891 (все запустилось. видео проигрывается. проверка на субдомене. клод)
 
       // Делаем кнопку неактивной по умолчанию
       if (downloadBtn) {
@@ -124,36 +128,8 @@ import '../styles/global.css';
         console.error('Код ошибки:', video.error?.code);
         console.error('Сообщение ошибки:', video.error?.message);
         
-        // Детальная диагностика ошибки
-        const errorCode = video.error?.code;
-        let errorDescription = 'Неизвестная ошибка';
-        
-        switch (errorCode) {
-          case 1:
-            errorDescription = 'MEDIA_ERR_ABORTED: Загрузка прервана пользователем';
-            break;
-          case 2:
-            errorDescription = 'MEDIA_ERR_NETWORK: Ошибка сети при загрузке';
-            break;
-          case 3:
-            errorDescription = 'MEDIA_ERR_DECODE: Ошибка декодирования видео';
-            break;
-          case 4:
-            errorDescription = 'MEDIA_ERR_SRC_NOT_SUPPORTED: Неподдерживаемый формат';
-            break;
-        }
-        
-        // eslint-disable-next-line no-console
-        console.error('Описание ошибки:', errorDescription);
-        
-        // Пробуем альтернативный способ загрузки
-        if (errorCode === 4) {
-          // eslint-disable-next-line no-console
-          console.log('Пробуем альтернативную загрузку через Blob URL...');
-          tryAlternativeVideoLoad(videoFile);
-        } else {
-          showVideoPlaceholder();
-        }
+        // Показываем заглушку вместо видео
+        showVideoPlaceholder();
       });
 
       // Обработка начала загрузки
@@ -168,6 +144,7 @@ import '../styles/global.css';
         console.log('Прогресс загрузки видео');
       });
 
+<<<<<<< HEAD
       // Альтернативная загрузка видео через fetch
       async function tryAlternativeVideoLoad(videoFile) {
         try {
@@ -252,6 +229,8 @@ import '../styles/global.css';
         }, 3000);
       }
 
+=======
+>>>>>>> parent of ae3c891 (все запустилось. видео проигрывается. проверка на субдомене. клод)
       // Функция показа заглушки
       function showVideoPlaceholder() {
         const bgColor = gender === 'male' ? '#3B82F6' : '#EC4899'; // Синий для мужчин, розовый для женщин
