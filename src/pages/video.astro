@@ -23,8 +23,8 @@ import '../styles/global.css';
       playsinline
       loop
       class="w-full h-full object-cover"
+      preload="metadata"
     >
-      <source src="/videos/boy.mp4" type="video/mp4">
       Ваш браузер не поддерживает видео.
     </video>
 
@@ -42,6 +42,7 @@ import '../styles/global.css';
     document.addEventListener('DOMContentLoaded', () => {
       const video = document.getElementById('main-video');
       const overlayText = document.getElementById('overlay-text');
+      const downloadBtn = document.getElementById('download-btn');
 
       if (!video || !overlayText) return;
 
@@ -59,16 +60,41 @@ import '../styles/global.css';
 
       // Устанавливаем источник видео в зависимости от пола
       const videoSrc = gender === 'male' ? '/videos/boy.mp4' : '/videos/girl.mp4';
+      
+      // eslint-disable-next-line no-console
+      console.log('Загружаем видео:', videoSrc);
+      
       video.src = videoSrc;
 
       // Обновляем текст оверлея с именем пользователя
       const text = `«Д-в, ЦЕХ и ${userName} отменили токсик. Смоленск. 2025.»`;
       overlayText.textContent = text;
 
-      // Обработка ошибок загрузки видео
-      video.addEventListener('error', () => {
+      // Делаем кнопку неактивной по умолчанию
+      if (downloadBtn) {
+        downloadBtn.disabled = true;
+        downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+
+      // Обработка успешной загрузки видео
+      video.addEventListener('loadeddata', () => {
         // eslint-disable-next-line no-console
-        console.error('Ошибка загрузки видео');
+        console.log('Видео успешно загружено');
+        
+        // Активируем кнопку
+        if (downloadBtn) {
+          downloadBtn.disabled = false;
+          downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      });
+
+      // Обработка ошибок загрузки видео
+      video.addEventListener('error', (e) => {
+        // eslint-disable-next-line no-console
+        console.error('Ошибка загрузки видео:', e);
+        console.error('Код ошибки:', video.error?.code);
+        console.error('Сообщение ошибки:', video.error?.message);
+        
         // Используем заглушку если основное видео не загрузилось
         video.style.backgroundColor = '#333';
         video.style.display = 'flex';
@@ -77,10 +103,16 @@ import '../styles/global.css';
         video.innerHTML = '<div class="text-white text-center p-4">Видео временно недоступно</div>';
       });
 
-      // Обработка успешной загрузки видео
-      video.addEventListener('loadeddata', () => {
+      // Обработка начала загрузки
+      video.addEventListener('loadstart', () => {
         // eslint-disable-next-line no-console
-        console.log('Видео успешно загружено');
+        console.log('Начало загрузки видео');
+      });
+
+      // Обработка прогресса загрузки
+      video.addEventListener('progress', () => {
+        // eslint-disable-next-line no-console
+        console.log('Прогресс загрузки видео');
       });
     });
   </script>

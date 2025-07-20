@@ -1,0 +1,74 @@
+---
+// Тестовая страница для проверки видео
+---
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест видео</title>
+</head>
+<body class="bg-gray-100 p-8">
+  <h1 class="text-2xl mb-4">Тест загрузки видео</h1>
+  
+  <div class="space-y-4">
+    <div>
+      <h2 class="text-lg mb-2">Мужское видео (boy.mp4)</h2>
+      <video 
+        id="boy-video" 
+        controls 
+        class="w-full max-w-md border"
+        preload="metadata"
+      >
+        <source src="/videos/boy.mp4" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+      </video>
+    </div>
+    
+    <div>
+      <h2 class="text-lg mb-2">Женское видео (girl.mp4)</h2>
+      <video 
+        id="girl-video" 
+        controls 
+        class="w-full max-w-md border"
+        preload="metadata"
+      >
+        <source src="/videos/girl.mp4" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+      </video>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const boyVideo = document.getElementById('boy-video');
+      const girlVideo = document.getElementById('girl-video');
+      
+      if (boyVideo) {
+        boyVideo.addEventListener('loadeddata', () => {
+          console.log('✅ boy.mp4 загружен успешно');
+        });
+        
+        boyVideo.addEventListener('error', (e) => {
+          console.error('❌ Ошибка загрузки boy.mp4:', e);
+          console.error('Код ошибки:', boyVideo.error?.code);
+          console.error('Сообщение:', boyVideo.error?.message);
+        });
+      }
+      
+      if (girlVideo) {
+        girlVideo.addEventListener('loadeddata', () => {
+          console.log('✅ girl.mp4 загружен успешно');
+        });
+        
+        girlVideo.addEventListener('error', (e) => {
+          console.error('❌ Ошибка загрузки girl.mp4:', e);
+          console.error('Код ошибки:', girlVideo.error?.code);
+          console.error('Сообщение:', girlVideo.error?.message);
+        });
+      }
+    });
+  </script>
+</body>
+</html> 

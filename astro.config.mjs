@@ -6,5 +6,8 @@ export default defineConfig({
   output: 'static',
   build: {
     assets: 'assets'
+  },
+  vite: {
+    assetsInclude: ['**/*.mp4']
   }
 }); 
