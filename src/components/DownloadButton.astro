@@ -1,0 +1,159 @@
+---
+// Компонент кнопки скачивания видео
+---
+
+<button
+  id="download-btn"
+  class="mt-6 px-8 py-4 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors text-lg"
+>
+  Скачать видео
+</button>
+
+<script>
+  // Функция для переноса текста
+  function wrapText(context, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i += 1) {
+      const word = words[i];
+      const { width } = context.measureText(`${currentLine} ${word}`);
+      if (width < maxWidth) {
+        currentLine = `${currentLine} ${word}`;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    lines.push(currentLine);
+    return lines;
+  }
+
+  // Функция генерации и скачивания видео
+  async function generateAndDownloadVideo(videoElement) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Устанавливаем размеры canvas как у видео
+    canvas.width = videoElement.videoWidth || 720;
+    canvas.height = videoElement.videoHeight || 1280;
+
+    const userName = localStorage.getItem('userName') || 'Имя';
+    const overlayText = `«Д-в, ЦЕХ и ${userName} отменили токсик. Смоленск. 2025.»`;
+
+    // Простая реализация без WebCodecs для совместимости
+    // Создаем canvas для каждого кадра
+    const frames = [];
+    const frameRate = 15; // Уменьшаем для производительности
+    const duration = Math.min(videoElement.duration || 3, 3); // Максимум 3 секунды
+    const totalFrames = Math.floor(duration * frameRate);
+
+    // Захватываем кадры
+    for (let i = 0; i < totalFrames; i += 1) {
+      const time = i / frameRate;
+      const currentVideo = videoElement;
+      currentVideo.currentTime = time;
+
+      await new Promise((resolve) => {
+        const onSeeked = () => {
+          currentVideo.removeEventListener('seeked', onSeeked);
+          resolve();
+        };
+        currentVideo.addEventListener('seeked', onSeeked);
+      });
+
+      // Рисуем кадр
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(currentVideo, 0, 0, canvas.width, canvas.height);
+
+      // Рисуем текст поверх
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 3;
+      ctx.font = `bold ${Math.floor(canvas.height * 0.06)}px "Roboto Flex", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const lines = wrapText(ctx, overlayText, canvas.width * 0.8);
+      const lineHeight = canvas.height * 0.08;
+      const totalHeight = lines.length * lineHeight;
+      const startY = (canvas.height - totalHeight) / 2;
+
+      lines.forEach((line, index) => {
+        const y = startY + (index * lineHeight) + lineHeight / 2;
+        ctx.strokeText(line, canvas.width / 2, y);
+        ctx.fillText(line, canvas.width / 2, y);
+      });
+
+      // Конвертируем в blob
+      const frameBlob = await new Promise((resolve) => {
+        canvas.toBlob(resolve, 'image/jpeg', 0.8);
+      });
+
+      frames.push(frameBlob);
+
+      const progress = ((i + 1) / totalFrames) * 100;
+      window.updateProgress(progress);
+    }
+
+    // Упрощенный способ создания видео через WebM
+    // В реальном проекте здесь бы использовался mp4-muxer
+    // Пока создаем простой GIF или используем MediaRecorder API
+
+    // Создаем видео через canvas stream (fallback)
+    const stream = canvas.captureStream(frameRate);
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm;codecs=vp9',
+    });
+
+    const chunks = [];
+    mediaRecorder.ondataavailable = (event) => chunks.push(event.data);
+
+    return new Promise((resolve) => {
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'my_video.webm';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+
+      mediaRecorder.start();
+      setTimeout(() => mediaRecorder.stop(), duration * 1000);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const downloadBtn = document.getElementById('download-btn');
+    const video = document.getElementById('main-video');
+
+    if (!downloadBtn || !video) return;
+
+    downloadBtn.addEventListener('click', async () => {
+      try {
+        window.showProgress();
+        await generateAndDownloadVideo(video);
+
+        // Отправляем аналитику
+        if (window.cloudflareAnalytics) {
+          window.cloudflareAnalytics.push({ event: 'download' });
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Ошибка при генерации видео:', error);
+        // eslint-disable-next-line no-alert
+        alert('Произошла ошибка при генерации видео. Попробуйте еще раз.');
+      } finally {
+        window.hideProgress();
+      }
+    });
+  });
+</script>

@@ -1,0 +1,81 @@
+---
+import DownloadButton from '../components/DownloadButton.astro';
+import ProgressOverlay from '../components/ProgressOverlay.astro';
+import '../styles/global.css';
+---
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ваше видео - Я отменяю токсик</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.ico">
+  <meta name="cloudflare-analytics" content="token=__YOUR_TOKEN__">
+</head>
+<body class="bg-[#77FF00] min-h-screen flex flex-col items-center justify-center font-sans p-4">
+  <div class="relative aspect-[2/3] rounded-[24px] overflow-hidden w-11/12 max-w-md mx-auto">
+    <video
+      id="main-video"
+      autoplay
+      muted
+      playsinline
+      loop
+      class="w-full h-full object-cover"
+    >
+      <source src="/videos/placeholder.mp4" type="video/mp4">
+      Ваш браузер не поддерживает видео.
+    </video>
+
+    <div class="absolute inset-0 flex items-center justify-center text-center overlay-text">
+      <div id="overlay-text" class="text-white text-2xl font-bold px-4 drop-shadow-lg">
+        «Д-в, ЦЕХ и — отменили токсик. Смоленск. 2025.»
+      </div>
+    </div>
+  </div>
+
+  <DownloadButton />
+  <ProgressOverlay />
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const video = document.getElementById('main-video');
+      const overlayText = document.getElementById('overlay-text');
+
+      if (!video || !overlayText) return;
+
+      // Получаем данные из localStorage
+      const gender = localStorage.getItem('gender');
+      const userName = localStorage.getItem('userName');
+
+      // Если нет данных, перенаправляем на главную
+      if (!gender || !userName) {
+        // eslint-disable-next-line no-restricted-globals
+        location.href = '/';
+        return;
+      }
+
+      // Устанавливаем источник видео в зависимости от пола
+      const videoSrc = gender === 'male' ? '/videos/boy.mp4' : '/videos/girl.mp4';
+      video.src = videoSrc;
+
+      // Обновляем текст оверлея с именем пользователя
+      const text = `«Д-в, ЦЕХ и ${userName} отменили токсик. Смоленск. 2025.»`;
+      overlayText.textContent = text;
+
+      // Обработка ошибок загрузки видео
+      video.addEventListener('error', () => {
+        // eslint-disable-next-line no-console
+        console.error('Ошибка загрузки видео');
+        // Используем заглушку если основное видео не загрузилось
+        video.style.backgroundColor = '#333';
+        video.style.display = 'flex';
+        video.style.alignItems = 'center';
+        video.style.justifyContent = 'center';
+        video.innerHTML = '<div class="text-white text-center p-4">Видео временно недоступно</div>';
+      });
+    });
+  </script>
+</body>
+</html>

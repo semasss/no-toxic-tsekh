@@ -1,0 +1,79 @@
+---
+// Компонент переключателя пола
+---
+
+<div class="flex gap-4 justify-center">
+  <button
+    type="button"
+    class="gender-btn w-16 h-16 rounded-full border-2 border-black bg-white hover:bg-gray-100 transition-colors flex items-center justify-center"
+    data-gender="male"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="10" cy="14" r="8"/>
+      <path d="m14 6 7-7"/>
+      <path d="m21 1-1 1"/>
+    </svg>
+  </button>
+
+  <button
+    type="button"
+    class="gender-btn w-16 h-16 rounded-full border-2 border-black bg-white hover:bg-gray-100 transition-colors flex items-center justify-center"
+    data-gender="female"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="8" r="7"/>
+      <path d="m12 15v5"/>
+      <path d="m9 18h6"/>
+    </svg>
+  </button>
+</div>
+
+<style>
+  .gender-btn.active {
+    background-color: #77FF00;
+  }
+</style>
+
+<script>
+  // Функция проверки валидности формы
+  function checkFormValidity() {
+    const nameInput = document.getElementById('name');
+    const goButton = document.getElementById('go');
+
+    if (nameInput && goButton) {
+      const namePattern = /^[A-Za-zА-Яа-яЁё]{1,20}$/;
+      const isNameValid = nameInput.value.trim().length > 0 && namePattern.test(nameInput.value);
+      const isGenderSelected = window.selectedGender !== '';
+
+      goButton.disabled = !(isNameValid && isGenderSelected);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const buttons = document.querySelectorAll('.gender-btn');
+    window.selectedGender = '';
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        // Убираем active класс у всех кнопок
+        buttons.forEach((btn) => btn.classList.remove('active'));
+        // Добавляем active класс к нажатой кнопке
+        button.classList.add('active');
+
+        window.selectedGender = button.dataset.gender;
+
+        // Проверяем валидность формы
+        checkFormValidity();
+      });
+    });
+
+    // Добавляем проверку при вводе имени
+    const nameInput = document.getElementById('name');
+    if (nameInput) {
+      nameInput.addEventListener('input', checkFormValidity);
+    }
+
+    // Экспортируем функцию для использования в других скриптах
+    window.getSelectedGender = () => window.selectedGender;
+  });
+</script>
