@@ -64,10 +64,31 @@ import '../styles/global.css';
 
       // Устанавливаем правильное видео на основе пола
       const videoFile = gender === 'male' ? 'boy.mp4' : 'girl.mp4';
-      video.src = `/videos/${videoFile}`;
       
       // eslint-disable-next-line no-console
       console.log(`Загружаем видео: ${videoFile} для пола: ${gender}`);
+      
+      // Проверяем поддержку MP4 перед загрузкой
+      const canPlayMp4 = video.canPlayType('video/mp4; codecs="avc1.42E01E"');
+      const canPlayMp4Basic = video.canPlayType('video/mp4');
+      
+      // eslint-disable-next-line no-console
+      console.log('Поддержка MP4 с кодеком H.264:', canPlayMp4);
+      // eslint-disable-next-line no-console
+      console.log('Поддержка MP4 базовая:', canPlayMp4Basic);
+      
+      if (canPlayMp4Basic === '' && canPlayMp4 === '') {
+        // eslint-disable-next-line no-console
+        console.warn('Браузер не поддерживает MP4 видео');
+        showVideoPlaceholder();
+        return;
+      }
+      
+      // Устанавливаем источник видео
+      video.src = `/videos/${videoFile}`;
+      
+      // Принудительная загрузка
+      video.load();
 
       // Делаем кнопку неактивной по умолчанию
       if (downloadBtn) {
@@ -94,8 +115,36 @@ import '../styles/global.css';
         console.error('Код ошибки:', video.error?.code);
         console.error('Сообщение ошибки:', video.error?.message);
         
-        // Показываем заглушку вместо видео
-        showVideoPlaceholder();
+        // Детальная диагностика ошибки
+        const errorCode = video.error?.code;
+        let errorDescription = 'Неизвестная ошибка';
+        
+        switch (errorCode) {
+          case 1:
+            errorDescription = 'MEDIA_ERR_ABORTED: Загрузка прервана пользователем';
+            break;
+          case 2:
+            errorDescription = 'MEDIA_ERR_NETWORK: Ошибка сети при загрузке';
+            break;
+          case 3:
+            errorDescription = 'MEDIA_ERR_DECODE: Ошибка декодирования видео';
+            break;
+          case 4:
+            errorDescription = 'MEDIA_ERR_SRC_NOT_SUPPORTED: Неподдерживаемый формат';
+            break;
+        }
+        
+        // eslint-disable-next-line no-console
+        console.error('Описание ошибки:', errorDescription);
+        
+        // Пробуем альтернативный способ загрузки
+        if (errorCode === 4) {
+          // eslint-disable-next-line no-console
+          console.log('Пробуем альтернативную загрузку через Blob URL...');
+          tryAlternativeVideoLoad(videoFile);
+        } else {
+          showVideoPlaceholder();
+        }
       });
 
       // Обработка начала загрузки
@@ -109,6 +158,39 @@ import '../styles/global.css';
         // eslint-disable-next-line no-console
         console.log('Прогресс загрузки видео');
       });
+
+      // Альтернативная загрузка видео через fetch
+      async function tryAlternativeVideoLoad(videoFile) {
+        try {
+          // eslint-disable-next-line no-console
+          console.log('Загружаем видео через fetch...');
+          
+          const response = await fetch(`/videos/${videoFile}`);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const blob = await response.blob();
+          const videoUrl = URL.createObjectURL(blob);
+          
+          // eslint-disable-next-line no-console
+          console.log('Видео загружено как Blob, устанавливаем URL:', videoUrl);
+          
+          // Устанавливаем Blob URL
+          video.src = videoUrl;
+          video.load();
+          
+          // Очищаем URL после использования
+          video.addEventListener('loadeddata', () => {
+            URL.revokeObjectURL(videoUrl);
+          }, { once: true });
+          
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Ошибка альтернативной загрузки:', error);
+          showVideoPlaceholder();
+        }
+      }
 
       // Функция показа заглушки
       function showVideoPlaceholder() {

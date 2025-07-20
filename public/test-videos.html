@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест видео файлов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .video-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .log {
+            background: #222;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        .info { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>Тест видео файлов MP4</h1>
+    
+    <div class="video-container">
+        <h2>Boy.mp4</h2>
+        <video id="boy-video" controls preload="metadata">
+            <source src="/videos/boy.mp4" type="video/mp4">
+            Ваш браузер не поддерживает видео.
+        </video>
+        <div id="boy-log" class="log"></div>
+    </div>
+    
+    <div class="video-container">
+        <h2>Girl.mp4</h2>
+        <video id="girl-video" controls preload="metadata">
+            <source src="/videos/girl.mp4" type="video/mp4">
+            Ваш браузер не поддерживает видео.
+        </video>
+        <div id="girl-log" class="log"></div>
+    </div>
+
+    <div class="video-container">
+        <h2>Информация о браузере</h2>
+        <div id="browser-info" class="log"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        // Информация о браузере
+        const browserInfo = {
+            userAgent: navigator.userAgent,
+            vendor: navigator.vendor,
+            platform: navigator.platform,
+            cookieEnabled: navigator.cookieEnabled,
+            onLine: navigator.onLine,
+            webkitGetUserMedia: !!navigator.webkitGetUserMedia,
+            mozGetUserMedia: !!navigator.mozGetUserMedia,
+            msGetUserMedia: !!navigator.msGetUserMedia
+        };
+
+        log('browser-info', `User Agent: ${browserInfo.userAgent}`, 'info');
+        log('browser-info', `Vendor: ${browserInfo.vendor}`, 'info');
+        log('browser-info', `Platform: ${browserInfo.platform}`, 'info');
+
+        // Проверка поддержки видео
+        const video = document.createElement('video');
+        const codecs = [
+            'video/mp4',
+            'video/mp4; codecs="avc1.42E01E"',
+            'video/mp4; codecs="avc1.4d401e"',
+            'video/mp4; codecs="avc1.64001e"',
+            'video/webm',
+            'video/webm; codecs="vp8"',
+            'video/webm; codecs="vp9"',
+            'video/ogg; codecs="theora"'
+        ];
+
+        codecs.forEach(codec => {
+            const support = video.canPlayType(codec);
+            const supportText = support === 'probably' ? 'PROBABLY' : 
+                               support === 'maybe' ? 'MAYBE' : 'NO';
+            log('browser-info', `${codec}: ${supportText}`, support ? 'success' : 'error');
+        });
+
+        // Настройка обработчиков для boy.mp4
+        const boyVideo = document.getElementById('boy-video');
+        
+        boyVideo.addEventListener('loadstart', () => {
+            log('boy-log', 'Начало загрузки boy.mp4', 'info');
+        });
+        
+        boyVideo.addEventListener('loadedmetadata', () => {
+            log('boy-log', `Метаданные загружены. Размер: ${boyVideo.videoWidth}x${boyVideo.videoHeight}, Длительность: ${boyVideo.duration}s`, 'success');
+        });
+        
+        boyVideo.addEventListener('loadeddata', () => {
+            log('boy-log', 'Первый кадр загружен', 'success');
+        });
+        
+        boyVideo.addEventListener('canplay', () => {
+            log('boy-log', 'Видео готово к воспроизведению', 'success');
+        });
+        
+        boyVideo.addEventListener('canplaythrough', () => {
+            log('boy-log', 'Видео полностью загружено', 'success');
+        });
+        
+        boyVideo.addEventListener('error', (e) => {
+            log('boy-log', `ОШИБКА: ${e.type}`, 'error');
+            if (boyVideo.error) {
+                log('boy-log', `Код ошибки: ${boyVideo.error.code}`, 'error');
+                log('boy-log', `Сообщение: ${boyVideo.error.message}`, 'error');
+            }
+        });
+
+        // Настройка обработчиков для girl.mp4
+        const girlVideo = document.getElementById('girl-video');
+        
+        girlVideo.addEventListener('loadstart', () => {
+            log('girl-log', 'Начало загрузки girl.mp4', 'info');
+        });
+        
+        girlVideo.addEventListener('loadedmetadata', () => {
+            log('girl-log', `Метаданные загружены. Размер: ${girlVideo.videoWidth}x${girlVideo.videoHeight}, Длительность: ${girlVideo.duration}s`, 'success');
+        });
+        
+        girlVideo.addEventListener('loadeddata', () => {
+            log('girl-log', 'Первый кадр загружен', 'success');
+        });
+        
+        girlVideo.addEventListener('canplay', () => {
+            log('girl-log', 'Видео готово к воспроизведению', 'success');
+        });
+        
+        girlVideo.addEventListener('canplaythrough', () => {
+            log('girl-log', 'Видео полностью загружено', 'success');
+        });
+        
+        girlVideo.addEventListener('error', (e) => {
+            log('girl-log', `ОШИБКА: ${e.type}`, 'error');
+            if (girlVideo.error) {
+                log('girl-log', `Код ошибки: ${girlVideo.error.code}`, 'error');
+                log('girl-log', `Сообщение: ${girlVideo.error.message}`, 'error');
+            }
+        });
+
+        // Пробуем загрузить видео через fetch
+        async function testFetchLoad(videoFile, logId) {
+            try {
+                log(logId, `Тестируем fetch загрузку ${videoFile}...`, 'info');
+                const response = await fetch(`/videos/${videoFile}`);
+                log(logId, `Fetch статус: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                log(logId, `Content-Type: ${response.headers.get('content-type')}`, 'info');
+                log(logId, `Content-Length: ${response.headers.get('content-length')} bytes`, 'info');
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    log(logId, `Blob создан успешно. Размер: ${blob.size} bytes, Тип: ${blob.type}`, 'success');
+                }
+            } catch (error) {
+                log(logId, `Ошибка fetch: ${error.message}`, 'error');
+            }
+        }
+
+        // Запускаем тесты
+        setTimeout(() => {
+            testFetchLoad('boy.mp4', 'boy-log');
+            testFetchLoad('girl.mp4', 'girl-log');
+        }, 1000);
+    </script>
+</body>
+</html>
