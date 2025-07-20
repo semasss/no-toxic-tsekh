@@ -178,14 +178,37 @@
         async function testFetchLoad(videoFile, logId) {
             try {
                 log(logId, `Тестируем fetch загрузку ${videoFile}...`, 'info');
-                const response = await fetch(`/videos/${videoFile}`);
+                
+                // Тестируем разные способы формирования URL
+                const directUrl = `/videos/${videoFile}`;
+                const newUrl = new URL(`/videos/${videoFile}`, import.meta.env.BASE_URL || window.location.origin).href;
+                
+                log(logId, `Прямой URL: ${directUrl}`, 'info');
+                log(logId, `new URL(): ${newUrl}`, 'info');
+                log(logId, `BASE_URL: ${import.meta.env.BASE_URL || 'undefined'}`, 'info');
+                
+                const response = await fetch(directUrl);
                 log(logId, `Fetch статус: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
                 log(logId, `Content-Type: ${response.headers.get('content-type')}`, 'info');
                 log(logId, `Content-Length: ${response.headers.get('content-length')} bytes`, 'info');
                 
                 if (response.ok) {
-                    const blob = await response.blob();
-                    log(logId, `Blob создан успешно. Размер: ${blob.size} bytes, Тип: ${blob.type}`, 'success');
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && (contentType.includes('video') || contentType.includes('application/octet-stream'))) {
+                        const blob = await response.blob();
+                        log(logId, `Blob создан успешно. Размер: ${blob.size} bytes, Тип: ${blob.type}`, 'success');
+                        
+                        // Тестируем создание Blob URL
+                        const blobUrl = URL.createObjectURL(blob);
+                        log(logId, `Blob URL создан: ${blobUrl.substring(0, 50)}...`, 'success');
+                        URL.revokeObjectURL(blobUrl);
+                    } else {
+                        log(logId, `❌ Неверный Content-Type! Ожидался video/*, получен: ${contentType}`, 'error');
+                        
+                        // Показываем начало ответа если это HTML
+                        const text = await response.text();
+                        log(logId, `Начало ответа: ${text.substring(0, 200)}...`, 'error');
+                    }
                 }
             } catch (error) {
                 log(logId, `Ошибка fetch: ${error.message}`, 'error');

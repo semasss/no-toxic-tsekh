@@ -62,11 +62,20 @@ import '../styles/global.css';
       const text = `«Д-в, ЦЕХ и ${userName} отменили токсик. Смоленск. 2025.»`;
       overlayText.textContent = text;
 
-      // Устанавливаем правильное видео на основе пола
+      // Формируем правильные URL для видео с учетом BASE_URL
+      const boyVideoSrc = new URL('/videos/boy.mp4', import.meta.env.BASE_URL).href;
+      const girlVideoSrc = new URL('/videos/girl.mp4', import.meta.env.BASE_URL).href;
+      
+      // Выбираем видео на основе пола
+      const videoSrc = gender === 'male' ? boyVideoSrc : girlVideoSrc;
       const videoFile = gender === 'male' ? 'boy.mp4' : 'girl.mp4';
       
       // eslint-disable-next-line no-console
       console.log(`Загружаем видео: ${videoFile} для пола: ${gender}`);
+      // eslint-disable-next-line no-console
+      console.log(`URL видео: ${videoSrc}`);
+      // eslint-disable-next-line no-console
+      console.log(`BASE_URL: ${import.meta.env.BASE_URL}`);
       
       // Проверяем поддержку MP4 перед загрузкой
       const canPlayMp4 = video.canPlayType('video/mp4; codecs="avc1.42E01E"');
@@ -85,7 +94,7 @@ import '../styles/global.css';
       }
       
       // Устанавливаем источник видео
-      video.src = `/videos/${videoFile}`;
+      video.src = videoSrc;
       
       // Принудительная загрузка
       video.load();
@@ -165,7 +174,10 @@ import '../styles/global.css';
           // eslint-disable-next-line no-console
           console.log('Загружаем видео через fetch...');
           
-          const response = await fetch(`/videos/${videoFile}`, {
+          // Используем правильный URL с BASE_URL
+          const videoUrl = new URL(`/videos/${videoFile}`, import.meta.env.BASE_URL).href;
+          
+          const response = await fetch(videoUrl, {
             headers: {
               'Accept': 'video/mp4,video/*,*/*'
             }
@@ -181,8 +193,10 @@ import '../styles/global.css';
           }
           
           const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('text/html')) {
-            throw new Error('Сервер вернул HTML вместо видео (проблема маршрутизации)');
+          
+          // Валидируем что получили видео, а не HTML
+          if (!contentType || (!contentType.includes('video') && !contentType.includes('application/octet-stream'))) {
+            throw new Error(`Неверный Content-Type: ${contentType}. Ожидался video/mp4 или video/*`);
           }
           
           const blob = await response.blob();
@@ -190,18 +204,23 @@ import '../styles/global.css';
           // eslint-disable-next-line no-console
           console.log('Blob создан:', blob.size, 'bytes, тип:', blob.type);
           
-          const videoUrl = URL.createObjectURL(blob);
+          // Дополнительная проверка размера файла
+          if (blob.size < 1000) {
+            throw new Error(`Файл слишком маленький: ${blob.size} bytes. Возможно это не видео.`);
+          }
+          
+          const blobUrl = URL.createObjectURL(blob);
           
           // eslint-disable-next-line no-console
-          console.log('Видео загружено как Blob, устанавливаем URL:', videoUrl);
+          console.log('Видео загружено как Blob, устанавливаем URL:', blobUrl);
           
           // Устанавливаем Blob URL
-          video.src = videoUrl;
+          video.src = blobUrl;
           video.load();
           
           // Очищаем URL после использования
           video.addEventListener('loadeddata', () => {
-            URL.revokeObjectURL(videoUrl);
+            URL.revokeObjectURL(blobUrl);
           }, { once: true });
           
         } catch (error) {
@@ -219,7 +238,8 @@ import '../styles/global.css';
         console.log('Пробуем прямую загрузку с кэш-бастингом...');
         
         const timestamp = Date.now();
-        video.src = `/videos/${videoFile}?v=${timestamp}`;
+        const videoUrl = new URL(`/videos/${videoFile}?v=${timestamp}`, import.meta.env.BASE_URL).href;
+        video.src = videoUrl;
         video.load();
         
         // Если и это не работает, показываем заглушку
