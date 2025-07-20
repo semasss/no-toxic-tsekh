@@ -1,2 +1,12 @@
-# Cloudflare Pages redirects for SPA
-/*    /index.html   200
+# Cloudflare Pages redirects - исключаем статические файлы
+/videos/* 200
+*.mp4 200  
+*.webm 200
+*.ico 200
+*.svg 200
+*.css 200
+*.js 200
+*.html 200
+
+# SPA fallback только для остальных путей
+/* /index.html 200
