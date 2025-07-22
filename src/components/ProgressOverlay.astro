@@ -25,10 +25,11 @@
     }
   };
 
-  window.updateProgress = (percent) => {
+  window.updateProgress = (percent, message) => {
     const progressText = document.getElementById('progress-text');
     if (progressText) {
-      progressText.textContent = `${Math.round(percent)}%`;
+      const text = message ? `${message} (${Math.round(percent)}%)` : `${Math.round(percent)}%`;
+      progressText.textContent = text;
     }
   };
 </script>

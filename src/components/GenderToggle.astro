@@ -2,35 +2,28 @@
 // Компонент переключателя пола
 ---
 
-<div class="flex gap-4 justify-center">
+<div class="flex gap-4">
   <button
     type="button"
-    class="gender-btn w-16 h-16 rounded-full border-2 border-black bg-white hover:bg-gray-100 transition-colors flex items-center justify-center"
+    class="gender-btn h-16 w-16 rounded-full bg-white border-0 hover:bg-gray-100 transition-colors flex items-center justify-center"
     data-gender="male"
   >
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="10" cy="14" r="8"/>
-      <path d="m14 6 7-7"/>
-      <path d="m21 1-1 1"/>
-    </svg>
+    <img src="/icons/male.svg" alt="Мужской" class="w-8 h-8" />
   </button>
 
   <button
     type="button"
-    class="gender-btn w-16 h-16 rounded-full border-2 border-black bg-white hover:bg-gray-100 transition-colors flex items-center justify-center"
+    class="gender-btn h-16 w-16 rounded-full bg-white border-0 hover:bg-gray-100 transition-colors flex items-center justify-center"
     data-gender="female"
   >
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="8" r="7"/>
-      <path d="m12 15v5"/>
-      <path d="m9 18h6"/>
-    </svg>
+    <img src="/icons/female.svg" alt="Женский" class="w-8 h-8" />
   </button>
 </div>
 
 <style>
   .gender-btn.active {
     background-color: #77FF00;
+    border: 2px solid black;
   }
 </style>
 

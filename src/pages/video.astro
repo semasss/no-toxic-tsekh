@@ -12,30 +12,46 @@ import '../styles/global.css';
   <title>Ваше видео - Я отменяю токсик</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="alternate icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+  <script type="importmap">
+    {
+      "imports": {
+        "mp4-muxer": "https://unpkg.com/mp4-muxer@4.0.0/dist/mp4-muxer.js",
+        "@ffmpeg/ffmpeg": "https://unpkg.com/@ffmpeg/ffmpeg@0.12.0/dist/esm/ffmpeg.js"
+      }
+    }
+  </script>
   <meta name="cloudflare-analytics" content="token=__YOUR_TOKEN__">
 </head>
 <body class="bg-[#77FF00] min-h-screen flex flex-col items-center justify-center font-sans p-4">
-  <div class="relative aspect-[2/3] rounded-[24px] overflow-hidden w-11/12 max-w-md mx-auto">
-    <video
-      id="main-video"
-      autoplay
-      muted
-      playsinline
-      loop
-      class="w-full h-full object-cover"
-      preload="metadata"
-    >
-      Ваш браузер не поддерживает видео.
-    </video>
+  <div class="w-11/12 max-w-md mx-auto">
+    <div class="relative aspect-[2/3] rounded-[24px] overflow-hidden">
+      <video
+        id="main-video"
+        autoplay
+        muted
+        playsinline
+        loop
+        class="w-full h-full object-cover"
+        preload="metadata"
+      >
+        Ваш браузер не поддерживает видео.
+      </video>
 
-    <div class="absolute inset-0 flex items-center justify-center text-center overlay-text">
-      <div id="overlay-text" class="text-white text-2xl font-bold px-4 drop-shadow-lg">
-        «Д-в, ЦЕХ и — отменили токсик. Смоленск. 2025.»
+      <div class="absolute inset-0 flex items-start justify-center text-center overlay-text pt-2.5">
+        <div id="overlay-text" class="text-[#77FF00] text-2xl font-normal px-4 drop-shadow-lg leading-[0.85]" style="font-family: 'IBM Plex Mono', monospace;">
+          <div class="uppercase">Д-В, ЦЕХ И —</div>
+          <div class="uppercase">ОТМЕНИЛИ ТОКСИК.</div>
+          <div class="uppercase text-center">СМОЛЕНСК. 2025</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <DownloadButton />
+    <DownloadButton />
+  </div>
+  
   <ProgressOverlay />
 
   <script>
@@ -59,8 +75,14 @@ import '../styles/global.css';
       }
 
       // Обновляем текст оверлея с именем пользователя
-      const text = `«Д-в, ЦЕХ и ${userName} отменили токсик. Смоленск. 2025.»`;
-      overlayText.textContent = text;
+      overlayText.innerHTML = `
+        <div class="uppercase">Д-В, ЦЕХ И ${userName.toUpperCase()}</div>
+        <div class="uppercase">ОТМЕНИЛИ ТОКСИК.</div>
+        <div class="uppercase text-center">СМОЛЕНСК. 2025</div>
+      `;
+      // Устанавливаем стили через JavaScript для уверенности
+      overlayText.style.fontFamily = "'IBM Plex Mono', monospace";
+      overlayText.style.lineHeight = '0.85';
 
       // Устанавливаем правильное видео на основе пола
       const videoFile = gender === 'male' ? 'boy.mp4' : 'girl.mp4';

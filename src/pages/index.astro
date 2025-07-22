@@ -14,34 +14,35 @@ import '../styles/global.css';
   <meta name="cloudflare-analytics" content="token=__YOUR_TOKEN__">
 </head>
 <body class="bg-[#77FF00] h-screen flex items-center justify-center font-sans">
-  <div class="text-center p-8 max-w-md w-full">
-    <h1 class="text-4xl font-bold mb-8 text-black">Я отменяю токсик</h1>
+  <div class="text-center p-4 w-full max-w-sm mx-auto">
 
-    <form class="space-y-6" id="main-form">
-      <div>
-        <label for="name" class="block text-lg font-semibold mb-2 text-black">Ваше имя:</label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          maxlength="20"
-          pattern="[A-Za-zА-Яа-яЁё]{1,20}"
-          placeholder="Введите имя"
-          required
-          class="w-full px-4 py-3 border-2 border-black rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
-        />
-      </div>
-
-      <div>
-        <label class="block text-lg font-semibold mb-4 text-black">Выберите пол:</label>
-        <GenderToggle />
+    <form id="main-form">
+      <div class="w-full">
+        <div class="text-left">
+          <label for="name" class="inline-block text-lg font-semibold mb-2 text-black">Меня зовут:</label>
+        </div>
+        <div class="w-full">
+          <input
+            id="name"
+            name="name"
+            type="text"
+            maxlength="20"
+            pattern="[A-Za-zА-Яа-яЁё]{1,20}"
+            placeholder="Введите имя"
+            required
+            class="w-full px-4 py-3 border-2 border-black rounded-full text-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+          />
+        </div>
+        <div class="flex justify-center mt-5">
+          <GenderToggle />
+        </div>
       </div>
 
       <button
         id="go"
         type="submit"
         disabled
-        class="w-full px-8 py-4 bg-black text-white font-bold rounded-lg text-lg disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
+        class="w-full px-8 py-4 bg-black text-white font-bold rounded-full text-lg disabled:bg-gray-400 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors mt-5"
       >
         Я отменяю токсик
       </button>

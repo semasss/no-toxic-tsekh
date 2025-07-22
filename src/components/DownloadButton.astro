@@ -10,129 +10,349 @@
   Скачать
 </button>
 
-<script>
-  // Функция для переноса текста
-  function wrapText(context, text, maxWidth) {
-    const words = text.split(' ');
-    const lines = [];
-    let currentLine = words[0];
-
-    for (let i = 1; i < words.length; i += 1) {
-      const word = words[i];
-      const { width } = context.measureText(`${currentLine} ${word}`);
-      if (width < maxWidth) {
-        currentLine = `${currentLine} ${word}`;
-      } else {
-        lines.push(currentLine);
-        currentLine = word;
+<script type="module">
+  // Динамический импорт библиотек через importmap
+  let mp4MuxerModule = null;
+  let ffmpegInstance = null;
+  
+  async function loadMp4Muxer() {
+    if (!mp4MuxerModule) {
+      try {
+        mp4MuxerModule = await import('mp4-muxer');
+        return mp4MuxerModule;
+      } catch (error) {
+        console.warn('Не удалось загрузить mp4-muxer:', error);
+        return null;
       }
     }
-    lines.push(currentLine);
-    return lines;
+    return mp4MuxerModule;
   }
 
-  // Функция генерации и скачивания видео
+  async function loadFFmpeg() {
+    if (!ffmpegInstance) {
+      try {
+        console.log('Загружаем FFmpeg.wasm...');
+        if (window.updateProgress) window.updateProgress(10, 'Загрузка FFmpeg...');
+        
+        const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+        const ffmpeg = new FFmpeg();
+        
+        if (window.updateProgress) window.updateProgress(30, 'Инициализация FFmpeg...');
+        await ffmpeg.load();
+        
+        ffmpegInstance = ffmpeg;
+        return ffmpeg;
+      } catch (error) {
+        console.warn('Не удалось загрузить FFmpeg:', error);
+        return null;
+      }
+    }
+    return ffmpegInstance;
+  }
+
+  // Основная функция с тройным fallback
   async function generateAndDownloadVideo(videoElement) {
+    const userName = new URLSearchParams(window.location.search).get('name') || 'Имя';
+
+    try {
+      // 1) Пробуем WebCodecs + mp4-muxer (быстро, нативно)
+      console.log('Пытаемся использовать WebCodecs...');
+      const mp4Buffer = await encodeWithWebCodecs(videoElement, userName);
+      if (mp4Buffer) {
+        downloadFile(mp4Buffer, `${userName}_отменил_токсик.mp4`, 'video/mp4');
+        return;
+      }
+    } catch (e) {
+      console.warn('WebCodecs failed:', e);
+    }
+
+    try {
+      // 2) Fallback: MediaRecorder (WebM) → ffmpeg.wasm → MP4
+      console.log('Переключаемся на MediaRecorder + FFmpeg...');
+      const webmBlob = await recordWithMediaRecorder(videoElement, userName);
+      const mp4Blob = await convertWebmToMp4(webmBlob);
+      if (mp4Blob) {
+        downloadFile(mp4Blob, `${userName}_отменил_токсик.mp4`, 'video/mp4');
+        return;
+      }
+    } catch (e) {
+      console.warn('FFmpeg fallback failed:', e);
+    }
+
+    // 3) Final fallback: просто скачиваем WebM
+    console.log('Используем финальный fallback - WebM...');
+    try {
+      const webmBlob = await recordWithMediaRecorder(videoElement, userName);
+      downloadFile(webmBlob, `${userName}_отменил_токсик.webm`, 'video/webm');
+    } catch (e) {
+      console.error('Все методы не сработали:', e);
+      alert('Не удалось сгенерировать видео. Попробуйте обновить страницу.');
+    }
+  }
+
+  // Функция WebCodecs кодирования  
+  async function encodeWithWebCodecs(videoElement, userName) {
+    if (typeof VideoEncoder === 'undefined') {
+      return null;
+    }
+
+    const mp4Module = await loadMp4Muxer();
+    if (!mp4Module) {
+      return null;
+    }
+
+    const { Muxer, ArrayBufferTarget } = mp4Module;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Устанавливаем размеры canvas как у видео
-    canvas.width = videoElement.videoWidth || 720;
-    canvas.height = videoElement.videoHeight || 1280;
+    // Устанавливаем размеры (ограничиваем до 720x1280)
+    const originalWidth = videoElement.videoWidth || 720;
+    const originalHeight = videoElement.videoHeight || 1280;
+    
+    const maxWidth = 720;
+    const maxHeight = 1280;
+    
+    let targetWidth = Math.min(originalWidth, maxWidth);
+    let targetHeight = Math.min(originalHeight, maxHeight);
+    
+    // Сохраняем пропорции
+    if (originalWidth > maxWidth || originalHeight > maxHeight) {
+      const aspectRatio = originalWidth / originalHeight;
+      if (aspectRatio > maxWidth / maxHeight) {
+        targetWidth = maxWidth;
+        targetHeight = Math.round(maxWidth / aspectRatio);
+      } else {
+        targetHeight = maxHeight;
+        targetWidth = Math.round(maxHeight * aspectRatio);
+      }
+    }
+    
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
 
-    // Получаем имя из URL параметров
-    const urlParams = new URLSearchParams(window.location.search);
-    const userName = urlParams.get('name') || 'Имя';
-    const overlayText = `«Д-в, ЦЕХ и ${userName} отменили токсик. Смоленск. 2025.»`;
-
-    // Простая реализация без WebCodecs для совместимости
-    // Создаем canvas для каждого кадра
-    const frames = [];
-    const frameRate = 15; // Уменьшаем для производительности
-    const duration = Math.min(videoElement.duration || 3, 3); // Максимум 3 секунды
+    const frameRate = 30;
+    const duration = Math.min(videoElement.duration || 3, 3);
     const totalFrames = Math.floor(duration * frameRate);
 
-    // Захватываем кадры
-    for (let i = 0; i < totalFrames; i += 1) {
-      const time = i / frameRate;
-      const currentVideo = videoElement;
-      currentVideo.currentTime = time;
-
-      await new Promise((resolve) => {
-        const onSeeked = () => {
-          currentVideo.removeEventListener('seeked', onSeeked);
-          resolve();
-        };
-        currentVideo.addEventListener('seeked', onSeeked);
+    try {
+      const muxer = new Muxer({
+        target: new ArrayBufferTarget(),
+        video: {
+          codec: 'avc',
+          width: canvas.width,
+          height: canvas.height,
+          frameRate: frameRate,
+        },
+        fastStart: 'in-memory'
       });
 
-      // Рисуем кадр
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(currentVideo, 0, 0, canvas.width, canvas.height);
+      // Пробуем разные кодеки
+      const codecs = ['avc1.64001f', 'avc1.42001e', 'avc1.420014'];
+      let encoder = null;
+      
+      for (const codec of codecs) {
+        try {
+          const config = {
+            codec: codec,
+            width: canvas.width,
+            height: canvas.height,
+            framerate: frameRate,
+            bitrate: 2_000_000,
+          };
+          
+          const support = await VideoEncoder.isConfigSupported(config);
+          if (support.supported) {
+            encoder = new VideoEncoder({
+              output: (chunk) => muxer.addVideoChunk(chunk),
+              error: (e) => console.error('Encoder error:', e),
+            });
+            encoder.configure(config);
+            break;
+          }
+        } catch (e) {
+          console.warn(`Кодек ${codec} не работает:`, e);
+        }
+      }
+      
+      if (!encoder) return null;
 
-      // Рисуем текст поверх
-      ctx.fillStyle = 'white';
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 3;
-      ctx.font = `bold ${Math.floor(canvas.height * 0.06)}px "Roboto Flex", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      // Рендерим и кодируем кадры
+      for (let i = 0; i < totalFrames; i += 1) {
+        const time = i / frameRate;
+        videoElement.currentTime = time;
 
-      const lines = wrapText(ctx, overlayText, canvas.width * 0.8);
-      const lineHeight = canvas.height * 0.08;
-      const totalHeight = lines.length * lineHeight;
-      const startY = (canvas.height - totalHeight) / 2;
+        await new Promise((resolve) => {
+          const onSeeked = () => {
+            videoElement.removeEventListener('seeked', onSeeked);
+            resolve();
+          };
+          videoElement.addEventListener('seeked', onSeeked);
+        });
 
-      lines.forEach((line, index) => {
-        const y = startY + (index * lineHeight) + lineHeight / 2;
-        ctx.strokeText(line, canvas.width / 2, y);
-        ctx.fillText(line, canvas.width / 2, y);
-      });
+        // Рендерим кадр с текстом
+        renderFrameWithText(ctx, videoElement, userName, canvas.width, canvas.height);
 
-      // Конвертируем в blob
-      const frameBlob = await new Promise((resolve) => {
-        canvas.toBlob(resolve, 'image/jpeg', 0.8);
-      });
+        const frame = new VideoFrame(canvas, {
+          timestamp: (i / frameRate) * 1_000_000,
+        });
 
-      frames.push(frameBlob);
+        encoder.encode(frame);
+        frame.close();
 
-      const progress = ((i + 1) / totalFrames) * 100;
-      window.updateProgress(progress);
+        if (window.updateProgress) {
+          window.updateProgress(50 + (i / totalFrames) * 40, 'Генерация MP4...');
+        }
+      }
+
+      await encoder.flush();
+      encoder.close();
+      
+      muxer.finalize();
+      return muxer.target.buffer;
+      
+    } catch (error) {
+      console.error('WebCodecs encoding failed:', error);
+      return null;
     }
+  }
 
-    // Упрощенный способ создания видео через WebM
-    // В реальном проекте здесь бы использовался mp4-muxer
-    // Пока создаем простой GIF или используем MediaRecorder API
+  // Функция рендеринга кадра с текстом
+  function renderFrameWithText(ctx, videoElement, userName, width, height) {
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(videoElement, 0, 0, width, height);
 
-    // Создаем видео через canvas stream (fallback)
-    const stream = canvas.captureStream(frameRate);
+    // Рисуем текст
+    ctx.fillStyle = '#77FF00';
+    ctx.font = `${Math.floor(height * 0.06)}px 'IBM Plex Mono', monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const lineHeight = height * 0.08;
+    const startY = height * 0.15;
+
+    const lines = [
+      `Д-В, ЦЕХ И ${userName.toUpperCase()}`,
+      'ОТМЕНИЛИ ТОКСИК.',
+      'СМОЛЕНСК. 2025'
+    ];
+
+    lines.forEach((line, index) => {
+      ctx.fillText(line, width / 2, startY + index * lineHeight);
+    });
+  }
+
+  // Функция записи через MediaRecorder
+  async function recordWithMediaRecorder(videoElement, userName) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = Math.min(videoElement.videoWidth || 720, 720);
+    canvas.height = Math.min(videoElement.videoHeight || 1280, 1280);
+
+    const stream = canvas.captureStream(30);
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm;codecs=vp9',
+      mimeType: 'video/webm;codecs=vp8',
     });
 
     const chunks = [];
     mediaRecorder.ondataavailable = (event) => chunks.push(event.data);
 
+    const duration = Math.min(videoElement.duration || 3, 3);
+    const frameRate = 30;
+    const totalFrames = Math.floor(duration * frameRate);
+
     return new Promise((resolve) => {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'my_video.webm';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        URL.revokeObjectURL(url);
-        resolve();
+        resolve(blob);
       };
 
       mediaRecorder.start();
-      setTimeout(() => mediaRecorder.stop(), duration * 1000);
+
+      // Рендерим кадры в реальном времени
+      let frameIndex = 0;
+      const renderFrame = () => {
+        if (frameIndex >= totalFrames) {
+          mediaRecorder.stop();
+          return;
+        }
+
+        const time = frameIndex / frameRate;
+        videoElement.currentTime = time;
+
+        videoElement.addEventListener('seeked', () => {
+          renderFrameWithText(ctx, videoElement, userName, canvas.width, canvas.height);
+          
+          if (window.updateProgress) {
+            window.updateProgress(10 + (frameIndex / totalFrames) * 40, 'Запись WebM...');
+          }
+          
+          frameIndex++;
+          setTimeout(renderFrame, 1000 / frameRate);
+        }, { once: true });
+      };
+
+      renderFrame();
     });
   }
+
+  // Функция конвертации WebM в MP4 через FFmpeg
+  async function convertWebmToMp4(webmBlob) {
+    try {
+      const ffmpeg = await loadFFmpeg();
+      if (!ffmpeg) return null;
+
+      if (window.updateProgress) window.updateProgress(60, 'Конвертация в MP4...');
+
+      // Конвертируем blob в Uint8Array
+      const webmBuffer = await webmBlob.arrayBuffer();
+      const webmUint8 = new Uint8Array(webmBuffer);
+
+      // Записываем файл в FFmpeg FS (новое API)
+      await ffmpeg.writeFile('input.webm', webmUint8);
+
+      if (window.updateProgress) window.updateProgress(70, 'FFmpeg обработка...');
+
+      // Конвертируем WebM в MP4 (новое API)
+      await ffmpeg.exec([
+        '-i', 'input.webm',
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-movflags', 'faststart',
+        'output.mp4'
+      ]);
+
+      if (window.updateProgress) window.updateProgress(90, 'Финализация...');
+
+      // Читаем результат (новое API)
+      const mp4Data = await ffmpeg.readFile('output.mp4');
+
+      return new Blob([mp4Data], { type: 'video/mp4' });
+      
+    } catch (error) {
+      console.error('FFmpeg конвертация не удалась:', error);
+      return null;
+    }
+  }
+
+  // Функция скачивания файла
+  function downloadFile(data, filename, mimeType) {
+    const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+  }
+
+
+  // Делаем функцию доступной глобально
+  window.generateAndDownloadVideo = generateAndDownloadVideo;
 
   document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('download-btn');
@@ -142,7 +362,7 @@
 
     downloadBtn.addEventListener('click', async () => {
       try {
-        window.showProgress();
+        if (window.showProgress) window.showProgress();
         await generateAndDownloadVideo(video);
 
         // Отправляем аналитику
@@ -150,12 +370,10 @@
           window.cloudflareAnalytics.push({ event: 'download' });
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('Ошибка при генерации видео:', error);
-        // eslint-disable-next-line no-alert
         alert('Произошла ошибка при генерации видео. Попробуйте еще раз.');
       } finally {
-        window.hideProgress();
+        if (window.hideProgress) window.hideProgress();
       }
     });
   });
